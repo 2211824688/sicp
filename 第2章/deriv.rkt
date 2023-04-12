@@ -1,5 +1,6 @@
 #lang racket
 
+; 符号化求导程序
 (define (deriv exp var)
   (cond ((number? exp) 0)
         ((variable? exp)
@@ -21,6 +22,8 @@
         (else
          (error "unknown expression type -- DERIV" exp))))
 
+; exponetiation
+
 (define (exponentiation? exp)
   (and (pair? exp) (eq? (car exp) '**) (number? (exponent exp))))
 
@@ -33,41 +36,75 @@
         ((=number? exponent 1) base)
         (else (list '** base exponent))))
 
+; variable
+
 (define (variable? x) (symbol? x))
 
 (define (same-variable? v1 v2)
   (and (variable? v1) (variable? v2) (eq? v1 v2)))
 
+; isNumber?
+
 (define (=number? exp num)
   (and (number? exp) (eq? exp num)))
 
-(define (make-sum a1 a2)
-  (cond ((=number? a1 0) a2)
-        ((=number? a2 0) a1)
-        ((and (number? a1) (number? a2)) (+ a1 a2))
-        (else (list '+ a1 a2))))
-
-(define (make-product m1 m2)
-  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
-        ((=number? m1 1) m2)
-        ((=number? m2 1) m1)
-        (else (list '* m1 m2))))
+; sum
 
 (define (sum? x)
   (and (pair? x) (eq? (car x) '+)))
 
-(define a1 cadr)
+(define (make-sum . args)
+  (define (iter result l)
+    (if (null? l)
+        result
+        (let ((first (car l)))
+          (if (=number? first 0)
+              (iter result (cdr l))
+              (iter (append result (list first))
+                    (cdr l))))))
+  (iter '(+) args))
 
-(define a2 caddr)
+(define (a1 exp) (cadr exp))
+
+(define (a2 exp)
+  (define (iter result l)
+    (if (null? l)
+        result
+        (let ((first (list (car l))))
+          (iter (append result first)
+                (cdr l)))))
+  (if (null? (cdddr exp))
+      (caddr exp)
+      (iter '(+) (cddr exp))))
+
+; product
 
 (define (product? x)
   (and (pair? x) (eq? (car x) '*)))
 
-(define m1 cadr)
+(define (make-product . args)
+  (define (iter res l)
+    (if (null? l)
+      res
+      (iter (append res (list (car l)))
+            (cdr l))))
+  (iter '(*) args))
 
-(define m2 caddr)
+(define (m1 exp)
+  (cadr exp))
 
-(deriv '(** (+ (* 4 x) 1) 3) 'x)
+(define (m2 exp)
+  (define (iter result l)
+    (if (null? l)
+      result
+      (iter (append result (list (car l)))
+            (cdr l))))
+  (if (null? (cdddr exp))
+    (caddr exp)
+    (let ((rest (cddr exp)))
+      (iter '(*) rest))))
 
+;test
 
+(define exp (make-sum 1 2 3))
 
